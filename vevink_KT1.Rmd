@@ -1,111 +1,152 @@
 ---
-title: "Kontrolltöö 1"
-author: "Veronica Vinkler"
-date: "2025-03-27"
-output: html_document
+title: "Seminaritöö 1 ports"
+author: ""
+date: "2025-02-25"
+output:
+  html_document:
+    toc: true
+    toc_depth: 4
+    toc_float:
+      collapsed: false
+    number_sections: false
+    theme: default
+    code_folding: show
 ---
 
-# Ülesanded
-## A) Lugege andmestik R-i.
-Loeme andmestiku Nutritional_kt1 csv abil.
-```{r setup, include=FALSE}
-nuti <- read.csv("Nutritional_kt1.csv", header=TRUE, dec=",")
-```
+Käesolevas õppematerjalis on esitatud andmestiku puhastamise, ettevalmistamise ja kirjeldava analüüsu läbiviimise skeem andmestiku flights.csv näitel. Antud materjalis lahendatud ülesanded vastavad Seminaritöö 1 ülesannetele.
 
-## B) Kontrollige andmestiku struktuuri funktsiooni str() abil. Mitu objekti ja mitu tunnust on andmestikus?
+# Andmete eeltöötlus
+Andmete eeltöötluse etapil toimub andmete edasiseks analüüsiks ettevalmistamine: andmete lugemine, tunnuste tüüpide kontrollimine, puhastamine (vigaste väärtuste kontroll ja eemaldamine, duplikaatide eemaldamine, puuduvate väärtuste kontroll ja asendamine või eemaldamine, mittesobivate tunnuste kustutamine) ja ka tunnuste teisendamine ning uute tunnuste moodustamine.
+
+## Andmete lugemine
+flight failist Loeme andmeid R-i failist *flights.csv*, andmestik *flights.csv* üle 40nda rea. Üle rea lugemiseks kasutame seq() funktsiooni.
+
 ```{r}
-str(nuti)
+flight <- read.csv("flights.csv", header=TRUE, stringsAsFactors = FALSE)
+flight <- flight[seq(1, nrow(flight), by = 100), ]
 ```
-Antud andmestikus on 127 objekti ja 15 tunnust.
 
-## C) Tehke andmestikust ülevaade dfsummary() või skim() funktsiooni abil. Mitu arvulist ja mitu mittearvulist tunnust andmestikus on?
+Et saada andmestikust ülevaadet väljastame andmestiku tabelina. Selleks kasutame funktsiooni *datatable()* paketist “DT” ja *library(“DT”)*.
+
+```{r, warning=FALSE, message=FALSE}
+library(DT)
+datatable(flight, options=list(scrollx=1, pageLenght=10, searching=FALSE, scroller=TRUE, scrolly=200))
+```
+## Ülevaade andmestiku struktuurist
+### Ülevaade funktsiooni *str()* abil
+Kasutame funktsiooni str() andmestiku struktuuri ülevaatamiseks
+```{r}
+str(flight)
+```
+Funktsiooni *str()* rakendamise tulemusel saime teada, et andmestikus on 145477 objekti ja 31 muutuja.
+
+### Ülevaade funktsiooni *skim()* abil
+Teeme andmestiust detailsema ülevaate paketi skimr funktsiooni selle abil:
 ```{r}
 library(skimr)
-skim(nuti)
+skim(flight)
 ```
-Antud andmestikus on 5 mittearvulist tunnust ja 10 arvulist tunnust.
+Peale andmestiku objektide ja tunnuste arvust funktsioon skim() annab teada, ett andmestikus on 5 sümbolitüüpi ja 26 arvulist tunnust. Näeme teise tabeli põhjal, et andmestikus on puuduvate väärtustega 0 väärtusi ning tühjasi lahtreid on 370 TAIL_NUMBER ja 143226 CANCELLATION_REASON.
+Kolmandas tabelis näeme, et tunnustes DEPARTURE_TIME, DEPARTURE_DELAY, TAXI_OUT ja WHEELS_OFF on 2151-2226 puuduvaid väärtusi.
 
-## D) Kas andmestikus on duplikaadid? Mitu neid on? Eemaldage duplikaadid andmestikust.
+## Andmestiku puhastamine
+### Duplikaatide kontroll
+kontrollime duplikaatide olemasolu duplicated() abil.
 ```{r}
-sum(duplicated(nuti))
+sum(duplicated(flight))
 ```
-Antud andmestikus ei leidu duplikaate.
+Näeme, et selles andmestikkus duplikaadid puuduvad.
 
-## E)  Kas andmestikus on puuduvate väärtustega objektid? Mitu neid on? Eemaldage andmestikust puuduvate väärtusega objektid.
-Kontrollime kas andmestikus on puuduvate väätustega ridasid.
+### Puuduvate väärtuste kontroll
+Puuduvate väärtuste olemsolu kontrollimiseks kasutatakse funktsiooni is.na(). Leiame puuduvate väärtuste koguarvu andmestikus. Puuduvate väärtuste koguarv on r sum(is.na(air))
 ```{r}
-sum(!complete.cases(nuti))
+sum(!complete.cases(flight))
 ```
-
-## F) Kontrollige, et andmetüübid on R-i poolt õigesti loetud, vajadusel tehke parandusi. Muutke mittearvuliste tunnuste tüübid factor-tüübiks. Tehke uuendatud andmestikust ülevaade dfsummary() või skim() abil. Tehke järeldused andmestiku struktuuri kohta
-Kõigepealt moodustame faktor tunnuse.
+Puuduvate väärtuste koguarv on 618608.
+Puuduvate väärtustega objektide arvu leidmiseks kasutatakse funktsiooni complete.cases(). Leiame puuduvate väärtustega objektide arvu andmestikus.
 ```{r}
-nuti <- as.data.frame(unclass(nuti), stringAsFactors = TRUE)
-
+sum(!complete.cases(flight))
 ```
-Nüüd loome ülevaate.
+Antud andmestikus on puuduvate väärtustega ehk NA väärtustega objekte ja neid on 119003.
+
+Leiame mitu puuduvat väärtust igal tunnusel on funktsiooni apply() abil.
 ```{r}
-skim(nuti)
+apply(is.na(flight), 2, sum)
 ```
-Andmestikus on 5 faktortunnust ja 10 arvulist tunnust.
+Puuduvad väärtused on seotud tunnustega:
+DEPARTURE_TIME ja DEPARTURE_DELAY: 2151,  TAXI_OUT ja WHEELS_OFF: 2226,  SCHEDULED_TIME: 1,  ELAPSED_TIME ja AIR_TIME: 2621,  WHEELS_ON ja TAXI_IN: 2325,  AIR_SYSTEM_DELAY, SECURITY_DELAY, AIRLINE_DELAY,  LATE_AIRCRAFT_DELAY ja WEATHER_DELAY: 119003
 
-# Järgnevad ülesanded täidetakse Teie variandile vastavate tunnustega.
-Edasi teen tööd väärtustega Percent CalFat ja Location.
-
-## Määrake oma arvulise tunnuse tüüp (kas pidev või diskreetne või diskreetne palju erinevate väärtustega) Oma arvulise tunnuse jaoks konstrueerige ja vormistage korrektselt suhteliste sageduste tulpdiagramm ja karpdiagramm. Tehke erindite analüüs.
-
-###Arvulise tunnuse tüübi määrmaine
-Edasi analüüsin PercentCalFat kui pidevat väärtust.
-
-### Suhteliste sageduse Tulpdiagramm
-Tunnuse PercentCalFat suhteliste sageduste histogramm ja karpdiagramm:
+### Eemaldame puuduvate väärtustega objekte
+Puuduvate väärtustega objektide eemaldamine: Eemaldamiseks kasutame ‘na.omit()’ funktsiooni.
 ```{r}
-barplot(prop.table(table(nuti$PercentCalFat))*100, col = "skyblue", cex.names = 0.7, cex.axis = 0.8, main = "Tunnuse PercentCalFat suhteliste sageduste tulpdiagramm", ylab = "suht. sagedus, %")
+flight <- na.omit(flight)
 ```
-
-### Suhtelise sageduse Karpdiagramm
+Pärast puuduvate väärtustega objektide eemaldamist kontrollime objektide arvu uuesti.
 ```{r}
-b <- boxplot(nuti$PercentCalFat, col = "skyblue", horizontal = 1, main="Tunnuse PercentCalFat karpdiagramm",xlab="PercentCalFat",cex.main=0.8, range = 3)
+sum(complete.cases(flight))
 ```
+Andmestikus on nüüd alles 26474 objekti.
 
-Tunnuse PercentCalFat onjaotatud ühtlaselt (uniform), erindeid ei ole.
-
-## H) Oma arvulise tunnuse jaoks tehke sagedustabel, milles peavad olema esitatud sagedused, suhtelised sagedused %-des ja kumuleeritud suhtelised sagedused %-des
-Tunnuse PercentCalFat sagedustabel:
+## Faltortunnuste moodustamine
+Asendame edasiseks analüüsiks sümboltüüpi tunnused faktoriteks:
 ```{r}
-intervallid <-cut(nuti$PercentCalFat,seq(1,100,by=2),include.lowest = TRUE)
-sagedus <- table(intervallid)
-suht.sagedus <-prop.table(table(intervallid))*100
-sagedustabel <- cbind(rownames(sagedus),sagedus,round(suht.sagedus,2),round(cumsum(suht.sagedus),2))
-sagedustabel <- data.frame(sagedustabel,row.names = NULL)
-sagedustabel <-rbind(sagedustabel,c("Total",sum(sagedus),sum(suht.sagedus),""))
-names(sagedustabel) <- c("PercentCalFat","sagedus","suht.sagedus,%","kum.suht.sagedus,%")
-
-library(knitr)
-library(kableExtra)
-
-kable_styling(kable(sagedustabel,align = c('l','r','r','r')),bootstrap_options = c("striped","hover"),full_width = 0,position = "left")
+flight <- as.data.frame(unclass(flight), stringAsFactors = TRUE)
 ```
-Sagedus tabeli järgi tuleb välja, et toidud jäävad 3-69 protsendi vahemiku. Enamus tooted on 59-41 protsendi vahemikus ning täpsemal on 11 toitu 41-45% ja59-51%.
-
-## I) Oma arvulise tunnuse jaoks arvutage välja kõik võimalikud arvkarakteristikud.
-Tunnuse PercentCalFat arvkarakteristikud:
+Ettevalmistatud andmestiku struktuur:
 ```{r}
-library(FSA)
-arvkar <- Summarize(nuti$PercentCalFat, digits = 2)
-kable_styling(kable(t(arvkar)))
+skim(flight)
 ```
-## J) Tehke järeldused oma arvulise tunnuse jaotuse kohta: sümmeetria, tüüpilised ja keskmised väärtused, väärtuste muutmise vahemik, erindid
-Järeldus: tunnuse PercentCalFat jaotus on ühtlane, PercentCalFat keskmine on 42.25 ja see on mediaanist 2.75 väiksem. Tüüpiline CalFat protsent on 42% või 53% ümbruses, minimaalne väärtus on 4.35% ja maksimaalne on 68.33%. Tunnusel ei ole erandeid.
+Andmestikus on 5 faktor tunnust ja 26 arvulist tunnust
 
-## K) Analüüsige seost oma arvulise tunnuse ja oma mittearvulise tunnuse vahel, kasutades rühmade karpdiagramme. Tehke järeldused seose kohta
+## Andmete kirjeldav analüüs
+Kirjeldava andmeanalüüsi etapil esitatakse tunnuste väärtuste jaotuste diagrammid, sagedustabelid, аrvulised karakteristikud ning tehakse ka erindite ehk anomaalväärtuste analüüs.
+
+### Seoste analüüs
+Enne uurimishüpoteeside sõnastamist peab läbi viima seoste eelanalüüsi, et mõista uurimuse edukuse potentsiaali.
+
+Uurimiseks eraldatakse andmetest üks peamine analüüsitav tunnus ehk sihttunnus, mis vastab analüüsi eesmärgile.
+
+#### Seoste analüüs
+Visualiseerime seoseid andmestiku arvuliste tunnuste vahel funktsiooni plot() abil. Kuna 31 objekti on liiga palju, et kõiki ühel ekraanil kuvada, siis arvasime 15 esimest väärtust välja.
+
+#### Seosed arvuliste tunnuste vahel
+Visualiseerime seoseid andmestiku arvuliste tunnuste vahel funktsiooni plot() abil.
+
 ```{r}
-barplot(prop.table(table(nuti$Location))*100, col = "skyblue", cex.names = 0.7, cex.axis = 0.8, main = "Tunnuse Location suhteliste sageduste tulpdiagramm", ylab = "suht. sagedus, %")
-
-boxplot(PercentCalFat ~ Location, data = nuti,
- main = "Tunnuse TotChol jaotus tunnuse Education rühmades",
- ylab = "Total HDL cholesterol, mmol/L",
- xlab = "Education",
- col = "skyblue", cex.axis=0.6)
+graphics.off()
+par(mar = c(6, 6, 3, 3))
+numeric_data <- Filter(is.numeric, flight)
+exclude_columns <- c(
+  "YEAR", #1
+  "MONTH", #2
+  "DAY", #3
+  "DAY_OF_WEEK", #4
+  "FLIGHT_NUMBER", #5
+  "SCHEDULED_DEPARTURE", #6
+  "DEPARTURE_TIME", #7
+  "DEPARTURE_DELAY", #8
+  "TAXI_OUT", #9
+  "WHEELS_OFF", #10
+  "SCHEDULED_TIME", #11
+  "ELAPSED_TIME", #12
+  "AIR_TIME", #13
+  "DISTANCE", #14
+  "WHEELS_ON"
+)
+plot_data <- numeric_data[, !(names(numeric_data) %in% exclude_columns)]
+plot(plot_data, 
+     pch = 5,       # Solid circle points
+     col = "blue", 
+     cex = 0.3,      # Smaller points to avoid overplotting
+     main = "Flight Data (Excluding Specified Columns)")
 ```
+Tulemusena saame hajuvusdiagrammide maatriksi. Punktide jaotuse mustri ja tiheduse järgi teeme järelduse seose kuju, tugevuse ja suuna kohta. On olemas kasvav sõltuvus tunnuste “TotChol” ja “BPDiaAve” vahel ehk need,kellel on kõrgem diastoolne vererõhk, nendel on ka kolesterooli tase kõrgem.
+
+#### Sihttunnuse seos mittearvuliste tunnustega
+Selleks, et vaadata sihttunuse “TotChol” sõltuvust mittervulistest tunnustest, esitame sihttunnuse karpdiagrammid kategoriaalsete tunnuste rühmades. Kasutame selleks funktsiooni ggpairs() paketist GGally, mis loob tunnuste paaride diagrammide maatriksi.
+Salvestame graafiku muutujasse plot:
+```{r}
+
+```
+
 

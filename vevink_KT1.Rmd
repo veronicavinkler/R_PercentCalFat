@@ -1,0 +1,111 @@
+---
+title: "Kontrolltöö 1"
+author: "Veronica Vinkler"
+date: "2025-03-27"
+output: html_document
+---
+
+# Ülesanded
+## A) Lugege andmestik R-i.
+Loeme andmestiku Nutritional_kt1 csv abil.
+```{r setup, include=FALSE}
+nuti <- read.csv("Nutritional_kt1.csv", header=TRUE, dec=",")
+```
+
+## B) Kontrollige andmestiku struktuuri funktsiooni str() abil. Mitu objekti ja mitu tunnust on andmestikus?
+```{r}
+str(nuti)
+```
+Antud andmestikus on 127 objekti ja 15 tunnust.
+
+## C) Tehke andmestikust ülevaade dfsummary() või skim() funktsiooni abil. Mitu arvulist ja mitu mittearvulist tunnust andmestikus on?
+```{r}
+library(skimr)
+skim(nuti)
+```
+Antud andmestikus on 5 mittearvulist tunnust ja 10 arvulist tunnust.
+
+## D) Kas andmestikus on duplikaadid? Mitu neid on? Eemaldage duplikaadid andmestikust.
+```{r}
+sum(duplicated(nuti))
+```
+Antud andmestikus ei leidu duplikaate.
+
+## E)  Kas andmestikus on puuduvate väärtustega objektid? Mitu neid on? Eemaldage andmestikust puuduvate väärtusega objektid.
+Kontrollime kas andmestikus on puuduvate väätustega ridasid.
+```{r}
+sum(!complete.cases(nuti))
+```
+
+## F) Kontrollige, et andmetüübid on R-i poolt õigesti loetud, vajadusel tehke parandusi. Muutke mittearvuliste tunnuste tüübid factor-tüübiks. Tehke uuendatud andmestikust ülevaade dfsummary() või skim() abil. Tehke järeldused andmestiku struktuuri kohta
+Kõigepealt moodustame faktor tunnuse.
+```{r}
+nuti <- as.data.frame(unclass(nuti), stringAsFactors = TRUE)
+
+```
+Nüüd loome ülevaate.
+```{r}
+skim(nuti)
+```
+Andmestikus on 5 faktortunnust ja 10 arvulist tunnust.
+
+# Järgnevad ülesanded täidetakse Teie variandile vastavate tunnustega.
+Edasi teen tööd väärtustega Percent CalFat ja Location.
+
+## Määrake oma arvulise tunnuse tüüp (kas pidev või diskreetne või diskreetne palju erinevate väärtustega) Oma arvulise tunnuse jaoks konstrueerige ja vormistage korrektselt suhteliste sageduste tulpdiagramm ja karpdiagramm. Tehke erindite analüüs.
+
+###Arvulise tunnuse tüübi määrmaine
+Edasi analüüsin PercentCalFat kui pidevat väärtust.
+
+### Suhteliste sageduse Tulpdiagramm
+Tunnuse PercentCalFat suhteliste sageduste histogramm ja karpdiagramm:
+```{r}
+barplot(prop.table(table(nuti$PercentCalFat))*100, col = "skyblue", cex.names = 0.7, cex.axis = 0.8, main = "Tunnuse PercentCalFat suhteliste sageduste tulpdiagramm", ylab = "suht. sagedus, %")
+```
+
+### Suhtelise sageduse Karpdiagramm
+```{r}
+b <- boxplot(nuti$PercentCalFat, col = "skyblue", horizontal = 1, main="Tunnuse PercentCalFat karpdiagramm",xlab="PercentCalFat",cex.main=0.8, range = 3)
+```
+
+Tunnuse PercentCalFat onjaotatud ühtlaselt (uniform), erindeid ei ole.
+
+## H) Oma arvulise tunnuse jaoks tehke sagedustabel, milles peavad olema esitatud sagedused, suhtelised sagedused %-des ja kumuleeritud suhtelised sagedused %-des
+Tunnuse PercentCalFat sagedustabel:
+```{r}
+intervallid <-cut(nuti$PercentCalFat,seq(1,100,by=2),include.lowest = TRUE)
+sagedus <- table(intervallid)
+suht.sagedus <-prop.table(table(intervallid))*100
+sagedustabel <- cbind(rownames(sagedus),sagedus,round(suht.sagedus,2),round(cumsum(suht.sagedus),2))
+sagedustabel <- data.frame(sagedustabel,row.names = NULL)
+sagedustabel <-rbind(sagedustabel,c("Total",sum(sagedus),sum(suht.sagedus),""))
+names(sagedustabel) <- c("PercentCalFat","sagedus","suht.sagedus,%","kum.suht.sagedus,%")
+
+library(knitr)
+library(kableExtra)
+
+kable_styling(kable(sagedustabel,align = c('l','r','r','r')),bootstrap_options = c("striped","hover"),full_width = 0,position = "left")
+```
+Sagedus tabeli järgi tuleb välja, et toidud jäävad 3-69 protsendi vahemiku. Enamus tooted on 59-41 protsendi vahemikus ning täpsemal on 11 toitu 41-45% ja59-51%.
+
+## I) Oma arvulise tunnuse jaoks arvutage välja kõik võimalikud arvkarakteristikud.
+Tunnuse PercentCalFat arvkarakteristikud:
+```{r}
+library(FSA)
+arvkar <- Summarize(nuti$PercentCalFat, digits = 2)
+kable_styling(kable(t(arvkar)))
+```
+## J) Tehke järeldused oma arvulise tunnuse jaotuse kohta: sümmeetria, tüüpilised ja keskmised väärtused, väärtuste muutmise vahemik, erindid
+Järeldus: tunnuse PercentCalFat jaotus on ühtlane, PercentCalFat keskmine on 42.25 ja see on mediaanist 2.75 väiksem. Tüüpiline CalFat protsent on 42% või 53% ümbruses, minimaalne väärtus on 4.35% ja maksimaalne on 68.33%. Tunnusel ei ole erandeid.
+
+## K) Analüüsige seost oma arvulise tunnuse ja oma mittearvulise tunnuse vahel, kasutades rühmade karpdiagramme. Tehke järeldused seose kohta
+```{r}
+barplot(prop.table(table(nuti$Location))*100, col = "skyblue", cex.names = 0.7, cex.axis = 0.8, main = "Tunnuse Location suhteliste sageduste tulpdiagramm", ylab = "suht. sagedus, %")
+
+boxplot(PercentCalFat ~ Location, data = nuti,
+ main = "Tunnuse TotChol jaotus tunnuse Education rühmades",
+ ylab = "Total HDL cholesterol, mmol/L",
+ xlab = "Education",
+ col = "skyblue", cex.axis=0.6)
+```
+
